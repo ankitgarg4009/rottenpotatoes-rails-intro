@@ -1,11 +1,7 @@
 class Movie < ActiveRecord::Base
-
-    
-    def self.get_all_ratings
-        temp = Array.new
-        self.select('rating').uniq.each {|ele| temp.push(ele.rating)}
-        temp.sort.uniq
+    def self.all_ratings
+        # Get all distict ratings from the existing data
+        all_ratings = Movie.pluck('DISTINCT rating')
+        return all_ratings
     end
-
-
 end
