@@ -6,24 +6,88 @@ class MoviesController < ApplicationController
 
   def show
     id = params[:id] # retrieve movie ID from URI route
-    @movie = Movie.find(id) # look up movie by unique ID
+    @movies = Movie.find(id) # look up movie by unique ID
     # will render app/views/movies/show.<extension> by default
   end
 
   def index
-    # @movies = Movie.find(:all, :order=> (params[:sort_by]))
-    @movies = Movie.order(params[:sort_by])
-     if params[:ratings]
-       @movies=Movie.where(:rating=>params[:ratings].keys).order(params[:sort_by])
-     end
-    @sort_column=params[:sort_by]
-      @all_ratings=Movie.all_ratings
-      @set_ratings=params[:ratings]
-      if !@set_ratings
-        @set_ratings=Hash.new
-      end 
+    # Setting session hashes and opraring with them for simplicity
+    session[:ratings] = params[:ratings] if params[:ratings]
+    session[:sort_order] = params[:sort_order] if params[:sort_order]
+
+    # redirect to RESTful path if session contains all the information
+    if (!params[:ratings] && session[:ratings]) || (!params[:sort_order] && session[:sort_order])
+      flash.keep
+      redirect_to movies_path(ratings: session[:ratings], sort_order: session[:sort_order])
+    end
     
+    # Form DB query according to the passed sorting and filtering
+    # All four possible combinations generate diffrent DB query
+    if (session[:sort_order] && !session[:ratings])
+      if session[:sort_order] == 'byTitle'
+        @movies = Movie.order(:title)
+      elsif session[:sort_order] == 'byReleaseDate'
+        @movies = Movie.order(:release_date)
+      end
+    elsif (!session[:sort_order] && session[:ratings])
+      @movies = Movie.where({rating: session[:ratings].keys})
+    elsif (session[:sort_order] && session[:ratings])
+      if session[:sort_order] == 'byTitle'
+        @movies = Movie.where({rating: session[:ratings].keys}).order(:title)
+      elsif session[:sort_order] == 'byReleaseDate'
+        @movies = Movie.where({rating: session[:ratings].keys}).order(:release_date)
+      end
+    else
+      @movies = Movie.all
+    end
+    
+    @all_ratings = Movie.all_ratings
+    if session[:ratings]
+      @selected_ratings = session[:ratings]
+    else
+      @selected_ratings = {}
+      # For all check boxes to appear checked
+      @all_ratings.each do |x|
+        @selected_ratings[x] = 1
+      end
+    end
   end
+  #   @all_ratings=Movie.all_ratings
+  #   @sort_by=params[:sort_by]
+  #   @ratings=params[:ratings]
+    
+  #   # @movies = Movie.find(:all, :order=> (params[:sort_by]))
+  # # @movies = Movie.order(params[:sort_by])
+  #   if @ratings and @sort_by
+  #     @movies=Movie.where(:rating => params[:ratings].keys).find(:all, :order => (params[:sort_by]))
+  #   elsif @ratings
+  #     @movies=Movie.where(:rating => params[:ratings].keys)
+  #   elsif @sort_by
+  #     @movies=Movie.find(:all, :order => (params[:sort_by]))
+  #   else
+  #     @movie=Movie.all
+  #   end
+     
+  # # @sort_column=params[:sort_by]
+      
+  # #    @set_ratings=params[:ratings]
+  # #   if !@set_ratings
+  #   #    @set_ratings=Hash.new
+  #   # end 
+  #   if !@ratings
+  #     @ratings=Hash.new
+  #   end
+  #   @movies=Movie.all
+  #   if params[:ratings]
+  #     @movie = Movie.where(:rating => params[:ratings].keys).find(:all, :order => (params[:sort_by]))
+  #   end
+  #   @sort_column = params[:sort_by]
+  #   @all_ratings = Movie.all_ratings
+  #   @set_ratings = params[:ratings]
+  #   if !@set_ratings
+  #     @set_ratings = Hash.new
+  #   end
+  # end
 
   def new
     # default: render 'new' template
